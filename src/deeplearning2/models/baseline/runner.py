@@ -6,6 +6,7 @@ from deeplearning2.models.components.contracts import (
     ExecutionReportContract,
     RunnerExecutionConfig,
     build_execution_report,
+    materialize_execution_report,
 )
 
 
@@ -14,5 +15,4 @@ def run_baseline_experiment(config: RunnerExecutionConfig) -> ExecutionReportCon
 
     if config.runner_family != "baseline":
         raise ValueError("run_baseline_experiment requires runner_family='baseline'.")
-    return build_execution_report(config)
-
+    return materialize_execution_report(build_execution_report(config))

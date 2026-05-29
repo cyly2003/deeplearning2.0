@@ -6,6 +6,7 @@ from deeplearning2.models.components.contracts import (
     ExecutionReportContract,
     RunnerExecutionConfig,
     build_execution_report,
+    materialize_execution_report,
 )
 
 
@@ -14,5 +15,4 @@ def run_deep_experiment(config: RunnerExecutionConfig) -> ExecutionReportContrac
 
     if config.runner_family != "deep":
         raise ValueError("run_deep_experiment requires runner_family='deep'.")
-    return build_execution_report(config)
-
+    return materialize_execution_report(build_execution_report(config))

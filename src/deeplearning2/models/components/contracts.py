@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import asdict, dataclass, field
+from pathlib import Path
 from typing import Any
 
 from deeplearning2.models.baseline.registry import BASELINE_MODELS
 from deeplearning2.models.components.tasks import TASK_ID_DEFINITION
 from deeplearning2.models.transfer.protocols import FREEZE_MODES, TRANSFER_STAGES
+from deeplearning2.paths import ARTIFACTS_ROOT, PROJECT_ROOT
 
 
 RUNNER_FAMILIES = ("baseline", "deep", "transfer")
@@ -231,4 +234,61 @@ def build_execution_report(config: RunnerExecutionConfig) -> ExecutionReportCont
         config=config,
         artifacts=build_placeholder_artifacts(config.runner_family, config.run_name),
         summary=build_execution_summary(config.runner_family),
+    )
+
+
+def materialize_execution_report(
+    report: ExecutionReportContract,
+    *,
+    artifacts_root: str | Path | None = None,
+) -> ExecutionReportContract:
+    """Write the placeholder execution report bundle to the reserved artifact paths."""
+
+    root = Path(artifacts_root) if artifacts_root is not None else ARTIFACTS_ROOT
+    run_dir = root / report.runner_family / report.config.run_name
+    run_dir.mkdir(parents=True, exist_ok=True)
+
+    artifacts = ExecutionArtifacts(
+        run_dir=str(run_dir.relative_to(PROJECT_ROOT)),
+        config_path=str((run_dir / "config.json").relative_to(PROJECT_ROOT)),
+        manifest_path=str((run_dir / "manifest.json").relative_to(PROJECT_ROOT)),
+        report_path=str((run_dir / "report.json").relative_to(PROJECT_ROOT)),
+        checkpoint_path=str((run_dir / "checkpoint.bin").relative_to(PROJECT_ROOT)),
+        predictions_path=str((run_dir / "predictions.csv").relative_to(PROJECT_ROOT)),
+    )
+    materialized_report = ExecutionReportContract(
+        runner_family=report.runner_family,
+        config=report.config,
+        artifacts=artifacts,
+        summary=report.summary,
+        schema_version=report.schema_version,
+        report_sections=report.report_sections,
+    )
+
+    _write_json(run_dir / "config.json", asdict(materialized_report.config))
+    _write_json(
+        run_dir / "manifest.json",
+        {
+            "runner_family": materialized_report.runner_family,
+            "run_name": materialized_report.config.run_name,
+            "schema_version": materialized_report.schema_version,
+            "report_sections": list(materialized_report.report_sections),
+            "executed_training": materialized_report.summary.executed_training,
+            "status": materialized_report.summary.status,
+            "artifacts": asdict(materialized_report.artifacts),
+        },
+    )
+    _write_json(run_dir / "report.json", materialized_report.to_dict())
+    (run_dir / "checkpoint.bin").write_bytes(b"")
+    (run_dir / "predictions.csv").write_text(
+        "sample_id,task_id,prediction,status\n",
+        encoding="utf-8",
+    )
+    return materialized_report
+
+
+def _write_json(path: Path, payload: dict[str, Any]) -> None:
+    path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
     )

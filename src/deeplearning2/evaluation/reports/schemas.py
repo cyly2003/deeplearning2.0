@@ -7,6 +7,8 @@ from typing import Any
 
 from deeplearning2.config.loader import load_yaml_document
 from deeplearning2.config.registry import CONFIG_FILES
+from deeplearning2.evaluation.ad.methods import ADAssessment
+from deeplearning2.evaluation.uncertainty.methods import UncertaintyEstimate
 from deeplearning2.models.components.contracts import (
     ExecutionArtifacts,
     ExecutionReportContract,
@@ -102,6 +104,8 @@ class UnifiedResultBundle:
     task_rows: tuple[TaskMetricRow, ...] = field(default_factory=tuple)
     split_rows: tuple[SplitMetricRow, ...] = field(default_factory=tuple)
     species_rows: tuple[SpeciesMetricRow, ...] = field(default_factory=tuple)
+    ad_rows: tuple[ADAssessment, ...] = field(default_factory=tuple)
+    uncertainty_rows: tuple[UncertaintyEstimate, ...] = field(default_factory=tuple)
     schema_name: str = RESULT_BUNDLE_SCHEMA_NAME
     schema_version: str = RESULT_BUNDLE_SCHEMA_VERSION
 
@@ -125,6 +129,8 @@ def build_result_bundle(
     task_rows: tuple[TaskMetricRow, ...] = (),
     split_rows: tuple[SplitMetricRow, ...] = (),
     species_rows: tuple[SpeciesMetricRow, ...] = (),
+    ad_rows: tuple[ADAssessment, ...] = (),
+    uncertainty_rows: tuple[UncertaintyEstimate, ...] = (),
 ) -> UnifiedResultBundle:
     """Build a standardized result bundle for downstream workflows."""
 
@@ -133,6 +139,8 @@ def build_result_bundle(
         task_rows=task_rows,
         split_rows=split_rows,
         species_rows=species_rows,
+        ad_rows=ad_rows,
+        uncertainty_rows=uncertainty_rows,
     )
 
 __all__ = [
@@ -144,6 +152,7 @@ __all__ = [
     "REPORT_SCHEMA_VERSION",
     "RESULT_BUNDLE_SCHEMA_NAME",
     "RESULT_BUNDLE_SCHEMA_VERSION",
+    "ADAssessment",
     "RunnerExecutionConfig",
     "RunMetadata",
     "SplitDependencyContract",
@@ -153,6 +162,7 @@ __all__ = [
     "TaskMetricRow",
     "TargetContract",
     "TaskContract",
+    "UncertaintyEstimate",
     "UnifiedResultBundle",
     "build_result_bundle",
 ]

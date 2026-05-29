@@ -19,6 +19,9 @@ artifacts/figures/*
 artifacts/models/*
 artifacts/predictions/*
 artifacts/ssd/*
+artifacts/baseline/*
+artifacts/deep/*
+artifacts/transfer/*
 !artifacts/reports/.gitkeep
 !artifacts/figures/.gitkeep
 !artifacts/models/.gitkeep

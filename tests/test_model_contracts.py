@@ -1,8 +1,11 @@
+import json
+
 from deeplearning2.evaluation.reports.schemas import (
     REPORT_REQUIRED_SECTIONS,
     REPORT_SCHEMA_NAME,
     REPORT_SCHEMA_VERSION,
 )
+from deeplearning2.paths import PROJECT_ROOT
 from deeplearning2.models.baseline.runner import run_baseline_experiment
 from deeplearning2.models.components.contracts import (
     ExecutionReportContract,
@@ -93,6 +96,45 @@ def test_baseline_deep_transfer_share_execution_report_shape() -> None:
     assert {report.report_sections for report in reports} == {REPORT_REQUIRED_SECTIONS}
     assert {report.summary.comparability_group for report in reports} == {"unified_multitask_qsar"}
     assert all(report.summary.executed_training is False for report in reports)
+
+
+def test_runner_materializes_artifact_bundle_on_disk() -> None:
+    report = run_baseline_experiment(
+        RunnerExecutionConfig(
+            runner_family="baseline",
+            run_name="baseline_disk_demo",
+            task=_task(),
+            split=_split(),
+            target=_target(),
+            medium_scope="water",
+            model_name="ridge",
+        )
+    )
+
+    run_dir = PROJECT_ROOT / report.artifacts.run_dir
+    config_path = PROJECT_ROOT / report.artifacts.config_path
+    manifest_path = PROJECT_ROOT / report.artifacts.manifest_path
+    report_path = PROJECT_ROOT / report.artifacts.report_path
+    predictions_path = PROJECT_ROOT / report.artifacts.predictions_path
+    checkpoint_path = PROJECT_ROOT / report.artifacts.checkpoint_path
+
+    assert run_dir.is_dir()
+    assert config_path.is_file()
+    assert manifest_path.is_file()
+    assert report_path.is_file()
+    assert predictions_path.is_file()
+    assert checkpoint_path.is_file()
+
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    payload = json.loads(report_path.read_text(encoding="utf-8"))
+    saved_config = json.loads(config_path.read_text(encoding="utf-8"))
+
+    assert manifest["runner_family"] == "baseline"
+    assert manifest["run_name"] == "baseline_disk_demo"
+    assert manifest["executed_training"] is False
+    assert payload["summary"]["status"] == "not_started"
+    assert payload["artifacts"]["run_dir"] == report.artifacts.run_dir
+    assert saved_config["run_name"] == "baseline_disk_demo"
 
 
 def test_task_contract_matches_authoritative_semantics() -> None:

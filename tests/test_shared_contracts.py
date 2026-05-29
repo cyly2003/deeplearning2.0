@@ -5,6 +5,7 @@ from deeplearning2.data.splits.protocols import (
     build_split_protocol_manifest,
     get_split_protocol,
 )
+from deeplearning2.evaluation.ad.methods import ADAssessment, ADThresholds
 from deeplearning2.evaluation.reports.schemas import (
     RESULT_BUNDLE_SCHEMA_NAME,
     RESULT_BUNDLE_SCHEMA_VERSION,
@@ -14,6 +15,10 @@ from deeplearning2.evaluation.reports.schemas import (
     SpeciesMetricRow,
     TaskMetricRow,
     build_result_bundle,
+)
+from deeplearning2.evaluation.uncertainty.methods import (
+    ReliabilityEstimate,
+    UncertaintyEstimate,
 )
 from deeplearning2.models.components.tasks import (
     TASK_ID_COMPONENTS,
@@ -130,6 +135,36 @@ def test_unified_result_bundle_serializes_task_split_and_species_rows() -> None:
                 metrics={"r2": 0.7, "rmse": 0.33, "mae": 0.22},
             ),
         ),
+        ad_rows=(
+            ADAssessment(
+                sample_id="cmpd-001",
+                task_id="daphnia_magna__EC_mortality",
+                methods=("williams_plot", "leverage", "standardized_residual"),
+                in_domain=True,
+                leverage=0.2,
+                standardized_residual=1.0,
+                thresholds=ADThresholds(
+                    leverage_threshold=0.5,
+                    standardized_residual_threshold=3.0,
+                ),
+            ),
+        ),
+        uncertainty_rows=(
+            UncertaintyEstimate(
+                sample_id="cmpd-001",
+                task_id="daphnia_magna__EC_mortality",
+                method="deep_ensemble",
+                reliability=ReliabilityEstimate(
+                    predictive_mean=2.1,
+                    predictive_std=0.2,
+                    interval_lower=1.7,
+                    interval_upper=2.5,
+                    sample_count=5,
+                ),
+                member_predictions=(2.0, 2.1, 2.2),
+                epistemic_std=0.18,
+            ),
+        ),
     )
 
     payload = bundle.to_dict()
@@ -138,3 +173,5 @@ def test_unified_result_bundle_serializes_task_split_and_species_rows() -> None:
     assert tuple(SUPPORTED_METRIC_NAMES) == ("r2", "rmse", "mae")
     assert payload["task_rows"][0]["metrics"]["r2"] == 0.72
     assert payload["split_rows"][0]["metrics"]["rmse"] == 0.35
+    assert payload["ad_rows"][0]["thresholds"]["leverage_threshold"] == 0.5
+    assert payload["uncertainty_rows"][0]["reliability"]["predictive_mean"] == 2.1
