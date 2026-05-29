@@ -1,0 +1,12 @@
+target_spaces:
+  policy: task_internal_unification_with_separate_training_and_output_spaces
+  families:
+    EC_LC_ICx:
+      training_space: stable_task_internal_transform
+      output_space: user_interpretable_original_scale
+    NOEC_LOEC:
+      training_space: threshold_endpoint_specific_space
+      output_space: threshold_endpoint_specific_space
+    BCF_BAF:
+      training_space: log_space_allowed
+      output_space: original_bioaccumulation_factor

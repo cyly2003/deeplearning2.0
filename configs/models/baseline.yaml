@@ -1,0 +1,19 @@
+baseline_models:
+  shared_protocol:
+    use_same_task_system_as_deep: true
+    use_same_split_protocol: true
+    use_same_target_definition_logic: true
+    use_same_metrics: true
+  estimators:
+    ridge:
+      enabled: true
+    elasticnet:
+      enabled: true
+    random_forest:
+      enabled: true
+    xgboost:
+      enabled: true
+    lightgbm:
+      enabled: true
+    catboost:
+      enabled: true

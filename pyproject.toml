@@ -1,0 +1,90 @@
+[build-system]
+requires = ["setuptools>=70", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ecotox-unified-multitask-qsar"
+version = "0.1.0"
+description = "Environment and dependency scaffold for the unified multitask residual ecotoxicology QSAR project."
+requires-python = ">=3.11,<3.12"
+dependencies = [
+  "numpy>=1.26,<2.0",
+  "pandas>=2.2,<3.0",
+  "scipy>=1.13,<2.0",
+  "scikit-learn>=1.5,<1.6",
+  "statsmodels>=0.14,<0.15",
+  "pyarrow>=16,<17",
+  "openpyxl>=3.1,<4",
+  "sqlalchemy>=2.0,<3",
+  "PyYAML>=6.0,<7",
+  "tqdm>=4.66,<5",
+  "joblib>=1.4,<2",
+  "click>=8.1,<9",
+  "rich>=13.9,<14",
+  "jinja2>=3.1,<4",
+  "networkx>=3.3,<4",
+]
+
+[project.optional-dependencies]
+chem = [
+  "rdkit>=2024.3,<2025",
+]
+baseline = [
+  "xgboost>=2.1,<3",
+  "lightgbm>=4.5,<5",
+  "catboost>=1.2,<2",
+]
+deep = [
+  "torch>=2.4,<2.6",
+  "torchmetrics>=1.4,<2",
+  "tensorboard>=2.17,<3",
+  "optuna>=4.0,<5",
+]
+viz = [
+  "matplotlib>=3.8,<3.9",
+  "seaborn>=0.13,<0.14",
+  "shap>=0.46,<0.47",
+  "umap-learn>=0.5,<0.6",
+]
+notebook = [
+  "jupyterlab>=4.2,<5",
+  "ipykernel>=6.29,<7",
+]
+dev = [
+  "pytest>=8.3,<9",
+  "pytest-cov>=5,<6",
+  "ruff>=0.6,<0.7",
+  "black>=24.8,<25",
+  "mypy>=1.11,<2",
+  "pre-commit>=3.8,<4",
+  "pip-tools>=7.4,<8",
+]
+
+[project.scripts]
+deeplearning2-status = "deeplearning2.cli.main:main"
+
+[tool.deeplearning2.environment]
+deep_runtime = "gpu-only"
+preferred_torch_channel = "pip:pytorch-cu124"
+preferred_cuda_runtime = "12.4"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+addopts = "-ra"
+pythonpath = ["src", "."]

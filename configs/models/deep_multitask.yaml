@@ -1,0 +1,17 @@
+deep_model:
+  architecture_name: unified_multitask_residual_qsar
+  branches:
+    chemical_main_effect:
+      descriptor_encoder: grouped_rdkit_descriptor_heads
+      fingerprint_encoder: morgan_parallel_branch
+      fusion: trainable_descriptor_group_fusion
+    context_residual:
+      enabled: true
+      categorical_embedding: true
+      numeric_projection: true
+      required_numeric_fields:
+        - duration_h
+    rule_adapter:
+      enabled: false
+      reserved_for_future: true
+  prediction_equation: "y_pred = y_chemical + alpha * delta_context + beta * delta_rule"

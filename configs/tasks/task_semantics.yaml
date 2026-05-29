@@ -1,0 +1,41 @@
+task_semantics:
+  formal_task_definition: "task = species + endpoint semantics"
+  task_id_components:
+    - species
+    - effect_type
+    - endpoint_observation
+  effect_level:
+    role: input_condition
+    part_of_task_id: false
+    required_for:
+      - EC
+      - LC
+      - ICx
+    forbidden_for:
+      - BCF
+      - BAF
+  endpoint_semantics:
+    effect_type:
+      - LC
+      - EC
+      - NOEC
+      - LOEC
+      - BCF
+      - BAF
+      - ICx
+    endpoint_observation:
+      - mortality
+      - growth
+      - reproduction
+      - biochemical
+      - population
+      - bioaccumulation
+      - endocrine
+      - physiology
+  flags:
+    - is_lethal
+    - is_chronic
+    - is_threshold_endpoint
+    - is_bioaccumulation
+  exclusions:
+    exclude_not_reported_records: true

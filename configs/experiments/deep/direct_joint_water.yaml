@@ -1,0 +1,10 @@
+experiment:
+  id: deep_direct_joint_water
+  family: deep
+  medium_scope: water
+  split: scaffold_holdout
+  architecture:
+    descriptors: rdkit_grouped_descriptors
+    fingerprint: morgan
+    context: enabled
+    nonlinear_level_features: enabled

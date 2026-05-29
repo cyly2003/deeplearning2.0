@@ -1,0 +1,32 @@
+dataset:
+  source_type: sqlite
+  sqlite_path: ecotox_clean.sqlite
+  curated_view: ecotox_toxicity_joined_curated
+  rebuild_raw_join_by_default: false
+  required_core_columns:
+    - species_id
+    - species_name
+    - genus
+    - family
+    - taxon_group_l1
+    - taxon_group_l2
+    - taxon_group_l3
+    - organism_lifestage
+    - primary_medium
+    - duration_h
+    - effect_type
+    - effect_level
+    - endpoint
+    - endpoint_observation
+    - is_lethal
+    - is_chronic
+    - is_threshold_endpoint
+    - is_bioaccumulation
+    - smiles
+  target_columns:
+    value: target_value
+    unit: target_unit
+  task_definition:
+    expression: species + endpoint_semantics
+    effect_level_is_task_id_component: false
+    exclude_nr: true

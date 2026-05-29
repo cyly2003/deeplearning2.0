@@ -1,0 +1,14 @@
+prediction:
+  single_prediction_fields:
+    - smiles
+    - species_id
+    - primary_medium
+    - duration_h
+    - effect_type
+    - endpoint_observation
+    - effect_level
+  output_fields:
+    - predicted_value
+    - original_scale_value
+    - ad_status
+    - uncertainty

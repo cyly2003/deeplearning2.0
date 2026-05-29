@@ -1,0 +1,15 @@
+evaluation:
+  primary_scenarios:
+    - known_species_new_chemicals_generalization
+    - cross_medium_transfer
+  metrics:
+    - r2
+    - rmse
+    - mae
+  applicability_domain:
+    - williams_plot
+    - leverage
+    - standardized_residual
+  uncertainty:
+    - deep_ensemble
+    - mc_dropout

@@ -1,0 +1,12 @@
+experiment:
+  id: transfer_pretrain_water_finetune_soil
+  family: transfer
+  stages:
+    - pretrain
+    - finetune
+  pretrain_scope: water
+  finetune_scope: soil
+  freeze_modes:
+    - none
+    - chemical_encoder_partial
+    - chemical_encoder_full

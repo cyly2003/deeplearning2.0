@@ -1,0 +1,25 @@
+project:
+  name: deeplearning2.0
+  package: deeplearning2
+  random_seed: 20260529
+  data_entrypoint:
+    sqlite_path: ecotox_clean.sqlite
+    curated_view: ecotox_toxicity_joined_curated
+  task_definition: "task = species + endpoint semantics"
+  objective:
+    architecture: residual_multitask_qsar
+    formula: "y_pred = y_chemical + alpha * delta_context + beta * delta_rule"
+
+reproducibility:
+  fixed_random_seed: true
+  log_unit_conversions: true
+  log_preprocessing_steps: true
+  log_train_valid_test_splits: true
+
+outputs:
+  root_dir: artifacts
+  figures_dir: artifacts/figures
+  models_dir: artifacts/models
+  reports_dir: artifacts/reports
+  predictions_dir: artifacts/predictions
+  ssd_dir: artifacts/ssd

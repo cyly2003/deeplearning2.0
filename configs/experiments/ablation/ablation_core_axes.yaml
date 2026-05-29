@@ -1,0 +1,14 @@
+experiment:
+  id: ablation_core_axes
+  family: ablation
+  axes:
+    chemical_representation:
+      - rdkit only
+      - morgan only
+      - rdkit plus morgan
+    descriptor_fusion:
+      - flat fusion
+      - grouped
+    context:
+      - on
+      - off

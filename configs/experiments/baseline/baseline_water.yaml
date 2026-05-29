@@ -1,0 +1,13 @@
+experiment:
+  id: baseline_water_screen
+  family: baseline
+  medium_scope: water
+  split: scaffold_holdout
+  models:
+    - ridge
+    - elasticnet
+    - randomforest
+    - xgboost
+    - lightgbm
+    - catboost
+  task_system: species_plus_endpoint_semantics

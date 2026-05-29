@@ -1,0 +1,21 @@
+ablation_matrix:
+  axes:
+    chemical_representation:
+      - rdkit_only
+      - morgan_only
+      - rdkit_plus_morgan
+    descriptor_fusion:
+      - flat_fusion
+      - grouped_heads
+    context:
+      - off
+      - on
+    endpoint_encoding:
+      - simple_endpoint
+      - structured_endpoint
+    effect_level_features:
+      - raw
+      - nonlinear
+    training_mode:
+      - direct_joint
+      - transfer_learning

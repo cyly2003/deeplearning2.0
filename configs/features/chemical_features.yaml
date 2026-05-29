@@ -1,0 +1,53 @@
+chemical_features:
+  rdkit_descriptors:
+    enabled: true
+    grouped_heads: true
+    groups:
+      constitutional: []
+      topological: []
+      electronic: []
+      physicochemical: []
+      fragment: []
+      geometric_3d: []
+  morgan_fingerprint:
+    enabled: true
+    radius: 2
+    n_bits: 2048
+    use_counts: false
+  fusion:
+    mode: grouped_descriptor_plus_morgan
+    learn_intra_group_weights: true
+    learn_inter_group_weights: true
+
+context_features:
+  categorical_fields:
+    - species_id
+    - taxon_group_l1
+    - taxon_group_l2
+    - taxon_group_l3
+    - genus
+    - family
+    - organism_lifestage
+    - primary_medium
+    - effect_type
+    - endpoint_observation
+  flag_fields:
+    - is_lethal
+    - is_chronic
+    - is_threshold_endpoint
+    - is_bioaccumulation
+  numeric_fields:
+    - duration_h
+    - duration_log1p
+  nonlinear_effect_level_features:
+    enabled_for:
+      - EC
+      - LC
+      - ICx
+    features:
+      - level_fraction
+      - logit_level_fraction
+      - probit_level_fraction
+    disabled_for:
+      - BCF
+      - BAF

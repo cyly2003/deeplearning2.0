@@ -1,0 +1,29 @@
+ssd:
+  enabled: true
+  accepted_endpoint_families:
+    concentration_effect:
+      - EC
+      - LC
+      - ICx
+    threshold:
+      - NOEC
+      - LOEC
+    bioaccumulation:
+      - BCF
+      - BAF
+  rules:
+    effect_level_required_for:
+      - EC
+      - LC
+      - ICx
+    effect_level_forbidden_for:
+      - BCF
+      - BAF
+    forbid_mixing_for_same_ssd:
+      - ECx
+      - NOEC
+      - LOEC
+  outputs:
+    - hc5
+    - hc10
+    - uncertainty

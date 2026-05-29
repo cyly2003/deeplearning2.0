@@ -1,0 +1,10 @@
+transfer_learning:
+  stages:
+    - pretrain_water
+    - pretrain_water_sediment
+    - finetune_soil
+  freeze_modes:
+    - none
+    - chemical_encoder_partial
+    - chemical_encoder_full
+  allow_module_specific_learning_rates: true

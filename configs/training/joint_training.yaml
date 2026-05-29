@@ -1,0 +1,11 @@
+training:
+  media_curricula:
+    - water
+    - water_sediment
+    - water_sediment_soil
+  primary_split: scaffold_holdout
+  supplemental_splits:
+    - chemical_id_holdout
+    - medium_transfer_split
+  random_seed: 20260529
+  deterministic_where_possible: true
