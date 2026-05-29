@@ -13,12 +13,15 @@ from deeplearning2.config.loader import (
 from deeplearning2.data.tasks import build_task_inventory, fetch_normalized_task_records
 from deeplearning2.data.splits import get_split_protocol
 from deeplearning2.models.baseline.runner import run_baseline_experiment
+from deeplearning2.models.deep.runner import run_deep_experiment
 from deeplearning2.models.components.contracts import (
     RunnerExecutionConfig,
     SplitDependencyContract,
     TaskContract,
 )
 from deeplearning2.models.components.targets import build_target_contract
+from deeplearning2.models.transfer.protocols import FREEZE_MODES, TRANSFER_STAGES
+from deeplearning2.models.transfer.runner import run_transfer_experiment
 
 BASELINE_MODEL_ALIASES = {
     "randomforest": "random_forest",
@@ -91,13 +94,6 @@ def handle_runs_launch(args: argparse.Namespace) -> None:
             f"Launch family mismatch: CLI family={args.family!r}, config family={spec.family!r}."
         )
 
-    if spec.family != "baseline":
-        raise ValueError("Current launch skeleton only supports family='baseline'.")
-
-    models = spec.body.get("models")
-    if not isinstance(models, list) or not models:
-        raise ValueError(f"Baseline experiment at {args.config} must declare a non-empty models list.")
-
     split_name = spec.split or "scaffold_holdout"
     split_protocol = get_split_protocol(split_name)
     task_rows = _resolve_launch_tasks(
@@ -105,7 +101,24 @@ def handle_runs_launch(args: argparse.Namespace) -> None:
         view_name=args.view_name,
         medium_scope=spec.medium_scope,
     )
-    run_reports = []
+    if spec.family == "baseline":
+        run_reports = _launch_baseline_family(spec, split_name, split_protocol, task_rows)
+    elif spec.family == "deep":
+        run_reports = _launch_deep_family(spec, split_name, split_protocol, task_rows)
+    elif spec.family == "transfer":
+        run_reports = _launch_transfer_family(spec, split_name, split_protocol, task_rows)
+    else:
+        raise ValueError(f"Unsupported launch family={spec.family!r}.")
+
+    print(json.dumps(run_reports, ensure_ascii=False, indent=2))
+
+
+def _launch_baseline_family(spec, split_name: str, split_protocol, task_rows: list) -> list[dict[str, object]]:
+    models = spec.body.get("models")
+    if not isinstance(models, list) or not models:
+        raise ValueError(f"Baseline experiment at {spec.config_path} must declare a non-empty models list.")
+
+    run_reports: list[dict[str, object]] = []
     for task_row in task_rows:
         for model_name in models:
             normalized_model_name = BASELINE_MODEL_ALIASES.get(str(model_name), str(model_name))
@@ -128,24 +141,182 @@ def handle_runs_launch(args: argparse.Namespace) -> None:
                     ),
                     medium_scope=spec.medium_scope or "water",
                     model_name=normalized_model_name,
-                    extra={
-                        "config_path": str(spec.config_path),
-                        "experiment_id": spec.experiment_id,
-                        "launch_mode": "baseline_task_inventory_launch",
-                        "declared_model_name": str(model_name),
-                        "task_id": task_row.task_id,
-                        "target_family": task_row.target_family,
-                        "task_sample_count": task_row.sample_count,
-                        "task_distinct_smiles_count": task_row.distinct_smiles_count,
-                        "task_mediums": list(task_row.mediums),
-                        "split_purpose": split_protocol.purpose,
-                        "split_is_primary": split_protocol.is_primary,
-                    },
+                    extra=_build_launch_extra(
+                        spec=spec,
+                        task_row=task_row,
+                        split_protocol=split_protocol,
+                        launch_mode="baseline_task_inventory_launch",
+                        declared_model_name=str(model_name),
+                    ),
                 )
             )
             run_reports.append(report.to_dict())
+    return run_reports
 
-    print(json.dumps(run_reports, ensure_ascii=False, indent=2))
+
+def _launch_deep_family(spec, split_name: str, split_protocol, task_rows: list) -> list[dict[str, object]]:
+    architecture = spec.body.get("architecture")
+    if not isinstance(architecture, dict) or not architecture:
+        raise ValueError(f"Deep experiment at {spec.config_path} must declare an architecture mapping.")
+
+    run_reports: list[dict[str, object]] = []
+    for task_row in task_rows:
+        report = run_deep_experiment(
+            RunnerExecutionConfig(
+                runner_family="deep",
+                run_name=f"{spec.experiment_id}__{task_row.task_id}",
+                task=TaskContract(
+                    species_id=task_row.species_id,
+                    effect_type=task_row.effect_type,
+                    endpoint_observation=task_row.endpoint_observation,
+                ),
+                split=SplitDependencyContract(
+                    split_name=split_name,
+                    split_group=split_protocol.split_group,
+                ),
+                target=build_target_contract(
+                    task_row.effect_type,
+                    notes="deep_launch_bound_to_task_inventory",
+                ),
+                medium_scope=spec.medium_scope or "water",
+                extra=_build_launch_extra(
+                    spec=spec,
+                    task_row=task_row,
+                    split_protocol=split_protocol,
+                    launch_mode="deep_task_inventory_launch",
+                    architecture=architecture,
+                ),
+            )
+        )
+        run_reports.append(report.to_dict())
+    return run_reports
+
+
+def _launch_transfer_family(spec, split_name: str, split_protocol, task_rows: list) -> list[dict[str, object]]:
+    stages = spec.body.get("stages")
+    freeze_modes = spec.body.get("freeze_modes")
+    if not isinstance(stages, list) or not stages:
+        raise ValueError(f"Transfer experiment at {spec.config_path} must declare a non-empty stages list.")
+    if not isinstance(freeze_modes, list) or not freeze_modes:
+        raise ValueError(
+            f"Transfer experiment at {spec.config_path} must declare a non-empty freeze_modes list."
+        )
+
+    transfer_stage_name = _resolve_transfer_stage_name(spec.body)
+    freeze_mode_name = _resolve_freeze_mode_name(freeze_modes)
+    medium_scope = _resolve_transfer_medium_scope(spec.body)
+
+    run_reports: list[dict[str, object]] = []
+    for task_row in task_rows:
+        report = run_transfer_experiment(
+            RunnerExecutionConfig(
+                runner_family="transfer",
+                run_name=f"{spec.experiment_id}__{task_row.task_id}__{transfer_stage_name}",
+                task=TaskContract(
+                    species_id=task_row.species_id,
+                    effect_type=task_row.effect_type,
+                    endpoint_observation=task_row.endpoint_observation,
+                ),
+                split=SplitDependencyContract(
+                    split_name=split_name,
+                    split_group=split_protocol.split_group,
+                ),
+                target=build_target_contract(
+                    task_row.effect_type,
+                    notes="transfer_launch_bound_to_task_inventory",
+                ),
+                medium_scope=medium_scope,
+                transfer_stage=transfer_stage_name,
+                freeze_mode=freeze_mode_name,
+                extra=_build_launch_extra(
+                    spec=spec,
+                    task_row=task_row,
+                    split_protocol=split_protocol,
+                    launch_mode="transfer_task_inventory_launch",
+                    declared_transfer_stage=transfer_stage_name,
+                    declared_freeze_mode=freeze_mode_name,
+                    pretrain_scope=spec.body.get("pretrain_scope"),
+                    finetune_scope=spec.body.get("finetune_scope"),
+                ),
+            )
+        )
+        run_reports.append(report.to_dict())
+    return run_reports
+
+
+def _build_launch_extra(
+    *,
+    spec,
+    task_row,
+    split_protocol,
+    launch_mode: str,
+    declared_model_name: str | None = None,
+    architecture: dict | None = None,
+    declared_transfer_stage: str | None = None,
+    declared_freeze_mode: str | None = None,
+    pretrain_scope: str | None = None,
+    finetune_scope: str | None = None,
+) -> dict[str, object]:
+    extra = {
+        "config_path": str(spec.config_path),
+        "experiment_id": spec.experiment_id,
+        "launch_mode": launch_mode,
+        "task_id": task_row.task_id,
+        "target_family": task_row.target_family,
+        "task_sample_count": task_row.sample_count,
+        "task_distinct_smiles_count": task_row.distinct_smiles_count,
+        "task_mediums": list(task_row.mediums),
+        "split_purpose": split_protocol.purpose,
+        "split_is_primary": split_protocol.is_primary,
+    }
+    if declared_model_name is not None:
+        extra["declared_model_name"] = declared_model_name
+    if architecture is not None:
+        extra["architecture"] = architecture
+    if declared_transfer_stage is not None:
+        extra["declared_transfer_stage"] = declared_transfer_stage
+    if declared_freeze_mode is not None:
+        extra["declared_freeze_mode"] = declared_freeze_mode
+    if pretrain_scope is not None:
+        extra["pretrain_scope"] = pretrain_scope
+    if finetune_scope is not None:
+        extra["finetune_scope"] = finetune_scope
+    return extra
+
+
+def _resolve_transfer_stage_name(body: dict[str, object]) -> str:
+    pretrain_scope = str(body.get("pretrain_scope") or "")
+    finetune_scope = str(body.get("finetune_scope") or "")
+    if pretrain_scope == "water" and finetune_scope == "soil":
+        return "finetune_soil"
+    if pretrain_scope == "water":
+        return "pretrain_water"
+    if pretrain_scope == "water_sediment":
+        return "pretrain_water_sediment"
+    fallback = "finetune_soil"
+    if fallback not in TRANSFER_STAGES:
+        raise ValueError("Expected finetune_soil in TRANSFER_STAGES.")
+    return fallback
+
+
+def _resolve_freeze_mode_name(freeze_modes: list[object]) -> str:
+    normalized = [str(item) for item in freeze_modes]
+    for preferred in ("chemical_encoder_partial", "none", "chemical_encoder_full"):
+        if preferred in normalized:
+            return preferred
+    raise ValueError(f"Could not map freeze_modes {normalized!r} onto supported modes {FREEZE_MODES}.")
+
+
+def _resolve_transfer_medium_scope(body: dict[str, object]) -> str:
+    pretrain_scope = str(body.get("pretrain_scope") or "")
+    finetune_scope = str(body.get("finetune_scope") or "")
+    if pretrain_scope == "water" and finetune_scope == "soil":
+        return "water_sediment_soil"
+    if pretrain_scope == "water":
+        return "water"
+    if pretrain_scope == "water_sediment":
+        return "water_sediment"
+    return "water_sediment_soil"
 
 
 def _resolve_launch_tasks(

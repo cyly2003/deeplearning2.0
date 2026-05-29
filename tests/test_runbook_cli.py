@@ -259,3 +259,58 @@ def test_runs_launch_binds_to_real_task_inventory_when_sqlite_is_provided(tmp_pa
     assert first["task_sample_count"] >= 1
     assert first["target_family"] == "EC_LC_ICx"
     assert "task_id" in first
+
+
+def test_runs_launch_outputs_deep_placeholder_reports() -> None:
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "deeplearning2.cli.main",
+            "runs",
+            "launch",
+            "--family",
+            "deep",
+            "--config",
+            str(PROJECT_ROOT / "configs" / "experiments" / "deep" / "direct_joint_water.yaml"),
+        ],
+        cwd=PROJECT_ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+        env=_subprocess_env(),
+    )
+
+    payload = json.loads(result.stdout)
+    assert len(payload) == 1
+    assert payload[0]["runner_family"] == "deep"
+    assert payload[0]["config"]["extra"]["launch_mode"] == "deep_task_inventory_launch"
+    assert payload[0]["config"]["extra"]["architecture"]["context"] == "enabled"
+
+
+def test_runs_launch_outputs_transfer_placeholder_reports() -> None:
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "deeplearning2.cli.main",
+            "runs",
+            "launch",
+            "--family",
+            "transfer",
+            "--config",
+            str(PROJECT_ROOT / "configs" / "experiments" / "transfer" / "pretrain_water_finetune_soil.yaml"),
+        ],
+        cwd=PROJECT_ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+        env=_subprocess_env(),
+    )
+
+    payload = json.loads(result.stdout)
+    assert len(payload) == 1
+    assert payload[0]["runner_family"] == "transfer"
+    assert payload[0]["config"]["transfer_stage"] == "finetune_soil"
+    assert payload[0]["config"]["freeze_mode"] == "chemical_encoder_partial"
+    assert payload[0]["config"]["extra"]["launch_mode"] == "transfer_task_inventory_launch"
