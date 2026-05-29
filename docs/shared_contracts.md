@@ -100,3 +100,23 @@
 4. 结果汇总工作流复用 `UnifiedResultBundle`
 
 这样做的目的不是增加抽象层，而是减少不同研究线之间的语义漂移。
+
+## 7. 任务清单骨架
+
+当前已经补上任务清单构造骨架：
+
+- [`src/deeplearning2/data/tasks/builder.py`](/D:/深度学习2.0/src/deeplearning2/data/tasks/builder.py)
+- [`scripts/list_task_inventory.py`](/D:/深度学习2.0/scripts/list_task_inventory.py)
+
+它们当前负责：
+
+- 从 `ecotox_toxicity_joined_curated` 读取样本
+- 规范化 `species_id / effect_type / endpoint_observation / effect_level`
+- 生成正式 `task_id`
+- 聚合成 task inventory
+
+当前输出可直接支持：
+
+1. baseline / deep / transfer 共用任务清单
+2. 后续 split manifest 绑定
+3. species/task 粒度样本量预审计
