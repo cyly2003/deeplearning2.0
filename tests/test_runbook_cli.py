@@ -7,6 +7,7 @@ from pathlib import Path
 from deeplearning2.config.loader import (
     EXPERIMENT_FAMILIES,
     discover_experiment_configs,
+    load_experiment_launch_spec,
     load_experiment_records,
     summarize_experiment_families,
 )
@@ -43,6 +44,16 @@ def test_loader_extracts_known_metadata() -> None:
     assert records["deep"].experiment_id == "deep_direct_joint_water"
     assert records["transfer"].experiment_id == "transfer_pretrain_water_finetune_soil"
     assert records["ablation"].summary == "axes=3"
+
+
+def test_loader_builds_launch_spec_for_baseline_config() -> None:
+    spec = load_experiment_launch_spec(PROJECT_ROOT / "configs" / "experiments" / "baseline" / "baseline_water.yaml")
+
+    assert spec.family == "baseline"
+    assert spec.experiment_id == "baseline_water_screen"
+    assert spec.medium_scope == "water"
+    assert spec.split == "scaffold_holdout"
+    assert spec.body["models"][0] == "ridge"
 
 
 def test_summary_counts_each_family_once() -> None:
@@ -97,3 +108,30 @@ def test_list_experiments_script_outputs_concise_inventory() -> None:
     lines = [line for line in result.stdout.splitlines() if line.strip()]
     assert len(lines) == 4
     assert any(line.startswith("baseline\tbaseline_water_screen\t") for line in lines)
+
+
+def test_runs_launch_outputs_baseline_placeholder_reports() -> None:
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "deeplearning2.cli.main",
+            "runs",
+            "launch",
+            "--family",
+            "baseline",
+            "--config",
+            str(PROJECT_ROOT / "configs" / "experiments" / "baseline" / "baseline_water.yaml"),
+        ],
+        cwd=PROJECT_ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+        env=_subprocess_env(),
+    )
+
+    payload = json.loads(result.stdout)
+    assert len(payload) == 6
+    assert payload[0]["runner_family"] == "baseline"
+    assert payload[0]["config"]["medium_scope"] == "water"
+    assert payload[0]["config"]["extra"]["launch_mode"] == "placeholder_baseline_launch"

@@ -40,6 +40,18 @@ class ExperimentRecord:
         }
 
 
+@dataclass(frozen=True)
+class ExperimentLaunchSpec:
+    """Minimal launch-ready experiment configuration view."""
+
+    experiment_id: str
+    family: str
+    config_path: Path
+    medium_scope: str | None
+    split: str | None
+    body: dict[str, Any]
+
+
 def discover_experiment_configs(root: Path = EXPERIMENTS_ROOT) -> list[Path]:
     """Return experiment config files from family subdirectories."""
 
@@ -126,6 +138,37 @@ def load_experiment_records(root: Path = EXPERIMENTS_ROOT) -> list[ExperimentRec
     """Discover and load all experiment metadata records."""
 
     return [extract_experiment_record(path) for path in discover_experiment_configs(root)]
+
+
+def load_experiment_launch_spec(path: Path | str) -> ExperimentLaunchSpec:
+    """Load a launch-ready experiment configuration payload."""
+
+    resolved_path = Path(path)
+    payload = load_yaml_document(resolved_path)
+    family = _infer_family_from_path(resolved_path)
+    body = payload.get("experiment")
+    if not isinstance(body, dict):
+        raise ValueError(f"Expected top-level 'experiment' mapping in {resolved_path}.")
+
+    experiment_id = body.get("id")
+    if not experiment_id:
+        raise ValueError(f"Missing experiment.id in {resolved_path}.")
+
+    declared_family = body.get("family")
+    if declared_family and declared_family != family:
+        raise ValueError(
+            "Experiment family mismatch in "
+            f"{resolved_path}: declared={declared_family!r}, inferred={family!r}."
+        )
+
+    return ExperimentLaunchSpec(
+        experiment_id=str(experiment_id),
+        family=family,
+        config_path=resolved_path,
+        medium_scope=body.get("medium_scope"),
+        split=body.get("split"),
+        body=body,
+    )
 
 
 def summarize_experiment_families(
